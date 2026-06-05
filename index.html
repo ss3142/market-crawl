@@ -4643,6 +4643,7 @@ const MC_BGM = {
 
 let _bgmCurrentKey = null;
 let _bgmAudio      = null;
+let _bgmPausedByHidden = false;
 
 function _bgmFadeTo(audio, targetVol, ms, onDone) {
   if (!audio) { if (onDone) onDone(); return; }
@@ -4683,11 +4684,21 @@ function bgmPlay(key) {
   _bgmFadeTo(a, MC_BGM.vol, MC_BGM.fadeMs, null);
 }
 
+function bgmStop(resetKey = false) {
+  if (_bgmAudio) {
+    _bgmAudio.pause();
+    _bgmAudio.removeAttribute('src');
+    _bgmAudio.load();
+    _bgmAudio = null;
+  }
+  if (resetKey) _bgmCurrentKey = null;
+}
+
 
 function bgmToggle() {
   MC_BGM.enabled = !MC_BGM.enabled;
   if (!MC_BGM.enabled) {
-    if (_bgmAudio) _bgmAudio.volume = 0;
+    bgmStop(false);
   } else {
     if (_bgmAudio) _bgmFadeTo(_bgmAudio, MC_BGM.vol, 600, null);
     else if (_bgmCurrentKey) bgmPlay(_bgmCurrentKey);
@@ -4695,6 +4706,18 @@ function bgmToggle() {
   const btn = document.getElementById('bgmToggleBtn');
   if (btn) btn.textContent = MC_BGM.enabled ? '♪' : '♪̶';
 }
+
+window.addEventListener('pagehide', () => bgmStop(true));
+window.addEventListener('beforeunload', () => bgmStop(true));
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    _bgmPausedByHidden = !!(_bgmAudio && !_bgmAudio.paused);
+    if (_bgmPausedByHidden) bgmStop(false);
+  } else if (_bgmPausedByHidden && MC_BGM.enabled && _bgmCurrentKey) {
+    _bgmPausedByHidden = false;
+    bgmPlay(_bgmCurrentKey);
+  }
+});
 
 // 現在のイベントから適切なBGMキーを判定
 function _bgmKeyForState() {
