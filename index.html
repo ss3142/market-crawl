@@ -19,6 +19,9 @@
   --green: #3ab87a;
   --blue: #4a90d9;
   --red: #e05c3a;
+  --stage-w: 1080px;
+  --stage-h: 608px;
+  --stage-scale: 1;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
@@ -2168,6 +2171,27 @@ html, body {
 
   /* portfolio / log ページ */
   #page-portfolio, #page-log { padding: 10px 12px; }
+}
+
+@media (orientation: landscape) and (max-height: 700px) {
+  body {
+    background: #050505;
+  }
+
+  .app {
+    width: var(--stage-w);
+    height: var(--stage-h);
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform-origin: center center;
+    transform: translate(-50%, -50%) scale(var(--stage-scale));
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
 }
 
 /* ── FOMO ゲージ ── */
@@ -4718,6 +4742,30 @@ document.addEventListener('visibilitychange', () => {
     bgmPlay(_bgmCurrentKey);
   }
 });
+
+const MC_STAGE = { w: 1080, h: 608 };
+function updateStageScale() {
+  const root = document.documentElement;
+  const isCompactLandscape = window.matchMedia('(orientation: landscape) and (max-height: 700px)').matches;
+  if (!isCompactLandscape) {
+    root.style.removeProperty('--stage-scale');
+    return;
+  }
+
+  const vv = window.visualViewport;
+  const vw = vv ? vv.width : window.innerWidth;
+  const vh = vv ? vv.height : window.innerHeight;
+  const scale = Math.min(vw / MC_STAGE.w, vh / MC_STAGE.h);
+  root.style.setProperty('--stage-scale', Math.max(0.1, scale).toFixed(4));
+}
+
+updateStageScale();
+window.addEventListener('resize', updateStageScale);
+window.addEventListener('orientationchange', () => setTimeout(updateStageScale, 250));
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', updateStageScale);
+}
+document.addEventListener('DOMContentLoaded', updateStageScale);
 
 // 現在のイベントから適切なBGMキーを判定
 function _bgmKeyForState() {
